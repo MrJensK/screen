@@ -17,12 +17,12 @@ static void snap(Monitor *mons, int count, int idx) {
         int mb = m->y + m->h,  ob  = o->y + o->h;
 
         /* horisontell snap: vänster mot höger och tvärtom */
-        if (abs(m->x - or_) <= SNAP_DIST) m->x = or_;
-        else if (abs(mr - o->x) <= SNAP_DIST) m->x = o->x - m->w;
+        if (abs(m->x - or_) < SNAP_DIST) m->x = or_;
+        else if (abs(mr - o->x) < SNAP_DIST) m->x = o->x - m->w;
 
         /* vertikal snap: topp mot botten och tvärtom */
-        if (abs(m->y - ob) <= SNAP_DIST) m->y = ob;
-        else if (abs(mb - o->y) <= SNAP_DIST) m->y = o->y - m->h;
+        if (abs(m->y - ob) < SNAP_DIST) m->y = ob;
+        else if (abs(mb - o->y) < SNAP_DIST) m->y = o->y - m->h;
     }
     if (m->x < 0) m->x = 0;
     if (m->y < 0) m->y = 0;
