@@ -108,7 +108,7 @@ int main(void) {
         case 's':
         case 'S':
             if (monitors_save(mons, nmons) == 0)
-                msg = "Sparat till ~/.screenlayout/xrantui.sh och ~/.xprofile";
+                msg = "Sparat — .desktop + .xprofile + .xinitrc (om de finns)";
             else
                 msg = "Fel: kunde inte spara";
             break;

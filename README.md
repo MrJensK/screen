@@ -6,21 +6,21 @@ Interactive terminal UI for arranging monitors, built with ncurses and Xrandr.
 
 ## Features
 
-- Visual scaled-down canvas of your monitor layout
-- Move monitors with arrow keys and apply instantly via xrandr
-- Snap-to-edge when dragging monitors near each other
+- Visual scaled-down canvas showing all active monitors
+- Move monitors with arrow keys — snaps to edges automatically
 - Set primary monitor
-- Save layout to `~/.screenlayout/xrantui.sh` with automatic `~/.xprofile` hook for persistence across reboots
-- Undo to revert unsaved changes
+- Apply layout instantly via xrandr
+- Save layout for persistence across reboots (XDG autostart, `.xprofile`, `.xinitrc`)
+- Undo to revert to positions at startup
 
 ## Requirements
 
 ### Runtime
 
 - X11 with Xrandr
-- `xrandr` CLI tool in `$PATH`
+- `xrandr` in `$PATH`
 
-### Build
+### Build dependencies
 
 ```bash
 sudo apt install gcc make pkg-config libncurses-dev libxrandr-dev libx11-dev
@@ -38,8 +38,8 @@ sudo make install        # installs to /usr/local/bin
 Custom prefix:
 
 ```bash
-sudo make install PREFIX=/usr          # → /usr/bin/xrantui
-make install PREFIX=~/.local           # → ~/.local/bin/xrantui (no sudo needed)
+sudo make install PREFIX=/usr     # → /usr/bin/xrantui
+make install PREFIX=~/.local      # → ~/.local/bin/xrantui (no sudo)
 ```
 
 Uninstall:
@@ -56,7 +56,7 @@ Run inside a terminal within an X session:
 xrantui
 ```
 
-If your `DISPLAY` variable is not set:
+If `DISPLAY` is not set:
 
 ```bash
 DISPLAY=:0 xrantui
@@ -71,14 +71,22 @@ DISPLAY=:0 xrantui
 | `p` | Set selected monitor as primary |
 | `u` | Undo — revert all monitors to positions at startup |
 | `Enter` | Apply layout with xrandr |
-| `s` | Save layout to `~/.screenlayout/xrantui.sh` |
+| `s` | Save layout |
 | `q` | Quit |
 
 ## Persistent layout
 
-Press `s` to save the current layout. This writes a shell script to
-`~/.screenlayout/xrantui.sh` and adds a one-time entry to `~/.xprofile` so the
-layout is restored automatically on every X login.
+Press `s` to save the current layout. xrantui writes to all relevant startup
+files automatically, covering most X setups:
+
+| File | Used by |
+|---|---|
+| `~/.screenlayout/xrantui.sh` | The xrandr script itself |
+| `~/.config/autostart/xrantui.desktop` | XDG autostart — GNOME, KDE, XFCE, LXDE |
+| `~/.xprofile` | Display manager without DE — e.g. LightDM + sxwm |
+| `~/.xinitrc` | `startx` + bare WM — e.g. sxwm. Inserted before `exec`. |
+
+`~/.xprofile` and `~/.xinitrc` are only modified if they already exist.
 
 ## Project structure
 

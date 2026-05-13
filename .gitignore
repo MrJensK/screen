@@ -1,0 +1,10 @@
+# build output
+xrantui
+*.o
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

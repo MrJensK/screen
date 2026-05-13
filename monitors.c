@@ -101,25 +101,73 @@ int monitors_save(Monitor *mons, int count) {
     fclose(f);
     chmod(path, 0755);
 
-    /* lägg till anrop i ~/.xprofile om det inte redan finns */
+    /* 1. XDG autostart — GNOME, KDE, XFCE, LXDE m.fl. */
+    char autostart_dir[512];
+    snprintf(autostart_dir, sizeof(autostart_dir), "%s/.config/autostart", home);
+    mkdir(autostart_dir, 0755);
+
+    char desktop[560];
+    snprintf(desktop, sizeof(desktop), "%s/xrantui.desktop", autostart_dir);
+    f = fopen(desktop, "w");
+    if (f) {
+        fprintf(f,
+                "[Desktop Entry]\n"
+                "Type=Application\n"
+                "Name=xrantui monitor layout\n"
+                "Exec=sh %s\n"
+                "X-GNOME-Autostart-enabled=true\n"
+                "Hidden=false\n",
+                path);
+        fclose(f);
+    }
+
+    /* 2. ~/.xprofile — displayhanterare utan DE (t.ex. LightDM + sxwm) */
     char xprofile[512];
     snprintf(xprofile, sizeof(xprofile), "%s/.xprofile", home);
-
     int found = 0;
     f = fopen(xprofile, "r");
     if (f) {
         char line[256];
-        while (fgets(line, sizeof(line), f)) {
+        while (fgets(line, sizeof(line), f))
             if (strstr(line, "xrantui.sh")) { found = 1; break; }
-        }
         fclose(f);
     }
     if (!found) {
         f = fopen(xprofile, "a");
         if (f) {
-            fprintf(f, "\n[ -f \"$HOME/.screenlayout/xrantui.sh\" ]"
-                       " && sh \"$HOME/.screenlayout/xrantui.sh\"\n");
+            fprintf(f, "\n[ -f \"%s\" ] && sh \"%s\"\n", path, path);
             fclose(f);
+        }
+    }
+
+    /* 3. ~/.xinitrc — startx + bare WM (t.ex. sxwm)
+       Infoga före första "exec "-raden så kommandot faktiskt körs. */
+    char xinitrc[512];
+    snprintf(xinitrc, sizeof(xinitrc), "%s/.xinitrc", home);
+    f = fopen(xinitrc, "r");
+    if (f) {
+        /* läs in hela filen */
+        char lines[128][256];
+        int n = 0;
+        while (n < 127 && fgets(lines[n], sizeof(lines[0]), f)) {
+            if (strstr(lines[n], "xrantui.sh")) { n = -1; break; } /* redan finns */
+            n++;
+        }
+        fclose(f);
+
+        if (n >= 0) {
+            /* hitta första exec-raden */
+            int exec_idx = n;
+            for (int i = 0; i < n; i++) {
+                if (strncmp(lines[i], "exec ", 5) == 0) { exec_idx = i; break; }
+            }
+            f = fopen(xinitrc, "w");
+            if (f) {
+                for (int i = 0; i < exec_idx; i++) fputs(lines[i], f);
+                fprintf(f, "sh \"%s\"\n", path);
+                for (int i = exec_idx; i < n; i++) fputs(lines[i], f);
+                fclose(f);
+            }
         }
     }
 
