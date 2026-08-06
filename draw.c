@@ -116,13 +116,19 @@ void draw_monitors(Monitor *mons, int count, int selected, int scale,
     if (msg) {
         mvprintw(rows - 1, 0, " %s", msg);
     } else {
+        Monitor *sel = &mons[selected];
+        char modeinfo[24] = "";
+        if (sel->nmodes > 0 && sel->mode_idx >= 0)
+            snprintf(modeinfo, sizeof(modeinfo), " (%d/%d)",
+                     sel->mode_idx + 1, sel->nmodes);
+
         mvprintw(rows - 1, 0,
-                 " Tab:välj  pil:flytta  p:primär  u:ångra"
+                 " Tab:välj  pil:flytta  +/-:upplösning  p:primär  u:ångra"
                  "  Enter:applicera  s:spara  q:avsluta"
-                 "  | %s @ %d,%d%s",
-                 mons[selected].name,
-                 mons[selected].x, mons[selected].y,
-                 mons[selected].primary ? " [P]" : "");
+                 "  | %s @ %d,%d %dx%d%s%s",
+                 sel->name, sel->x, sel->y, sel->w, sel->h,
+                 modeinfo,
+                 sel->primary ? " [P]" : "");
     }
     attroff(COLOR_PAIR(COLOR_STATUS));
 }

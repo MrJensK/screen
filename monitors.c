@@ -6,6 +6,52 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+/* fyller m->modes_w/h med unika WxH från outputens tillgängliga moder,
+   störst yta först, och sätter m->mode_idx till den som matchar m->w/h */
+static void collect_modes(Monitor *m, XRRScreenResources *res, XRROutputInfo *out) {
+    m->nmodes = 0;
+    m->mode_idx = -1;
+
+    for (int i = 0; i < out->nmode && m->nmodes < MAX_MODES; i++) {
+        RRMode id = out->modes[i];
+        XRRModeInfo *mi = NULL;
+        for (int j = 0; j < res->nmode; j++) {
+            if (res->modes[j].id == id) { mi = &res->modes[j]; break; }
+        }
+        if (!mi) continue;
+
+        int w = (int)mi->width, h = (int)mi->height;
+        int dup = 0;
+        for (int k = 0; k < m->nmodes; k++)
+            if (m->modes_w[k] == w && m->modes_h[k] == h) { dup = 1; break; }
+        if (dup) continue;
+
+        /* infoga sorterat efter yta, störst först */
+        int pos = m->nmodes;
+        while (pos > 0 && m->modes_w[pos - 1] * m->modes_h[pos - 1] < w * h) {
+            m->modes_w[pos] = m->modes_w[pos - 1];
+            m->modes_h[pos] = m->modes_h[pos - 1];
+            pos--;
+        }
+        m->modes_w[pos] = w;
+        m->modes_h[pos] = h;
+        m->nmodes++;
+    }
+
+    for (int k = 0; k < m->nmodes; k++)
+        if (m->modes_w[k] == m->w && m->modes_h[k] == m->h) { m->mode_idx = k; break; }
+}
+
+void monitors_cycle_mode(Monitor *m, int dir) {
+    if (m->nmodes == 0) return;
+    int idx = m->mode_idx;
+    if (idx < 0) idx = 0;
+    else idx = (idx + dir + m->nmodes) % m->nmodes;
+    m->mode_idx = idx;
+    m->w = m->modes_w[idx];
+    m->h = m->modes_h[idx];
+}
+
 int monitors_get(Monitor *mons, int max) {
     Display *dpy = XOpenDisplay(NULL);
     if (!dpy) {
@@ -43,6 +89,8 @@ int monitors_get(Monitor *mons, int max) {
                 m->h = (int)crtc->height;
                 XRRFreeCrtcInfo(crtc);
             }
+
+            collect_modes(m, res, out);
             count++;
         }
         XRRFreeOutputInfo(out);
@@ -65,10 +113,17 @@ static void build_xrandr_args(Monitor *mons, int count, char *buf, size_t bufsz)
     int pos = snprintf(buf, bufsz, "xrandr");
     for (int i = 0; i < count && pos < (int)bufsz - 80; i++) {
         sanitize_name(mons[i].name);
-        pos += snprintf(buf + pos, bufsz - (size_t)pos,
-                        " --output %s --pos %dx%d --auto%s",
-                        mons[i].name, mons[i].x, mons[i].y,
-                        mons[i].primary ? " --primary" : "");
+        Monitor *m = &mons[i];
+        if (m->w > 0 && m->h > 0)
+            pos += snprintf(buf + pos, bufsz - (size_t)pos,
+                            " --output %s --mode %dx%d --pos %dx%d%s",
+                            m->name, m->w, m->h, m->x, m->y,
+                            m->primary ? " --primary" : "");
+        else
+            pos += snprintf(buf + pos, bufsz - (size_t)pos,
+                            " --output %s --pos %dx%d --auto%s",
+                            m->name, m->x, m->y,
+                            m->primary ? " --primary" : "");
     }
 }
 
@@ -94,9 +149,15 @@ int monitors_save(Monitor *mons, int count) {
     fprintf(f, "#!/bin/sh\n");
     for (int i = 0; i < count; i++) {
         sanitize_name(mons[i].name);
-        fprintf(f, "xrandr --output %s --pos %dx%d --auto%s\n",
-                mons[i].name, mons[i].x, mons[i].y,
-                mons[i].primary ? " --primary" : "");
+        Monitor *m = &mons[i];
+        if (m->w > 0 && m->h > 0)
+            fprintf(f, "xrandr --output %s --mode %dx%d --pos %dx%d%s\n",
+                    m->name, m->w, m->h, m->x, m->y,
+                    m->primary ? " --primary" : "");
+        else
+            fprintf(f, "xrandr --output %s --pos %dx%d --auto%s\n",
+                    m->name, m->x, m->y,
+                    m->primary ? " --primary" : "");
     }
     fclose(f);
     chmod(path, 0755);

@@ -8,6 +8,7 @@ Interactive terminal UI for arranging monitors, built with ncurses and Xrandr.
 
 - Visual scaled-down canvas showing all active monitors
 - Move monitors with arrow keys — snaps to edges automatically
+- Cycle through each monitor's supported resolutions
 - Set primary monitor
 - Apply layout instantly via xrandr
 - Save layout for persistence across reboots (XDG autostart, `.xprofile`, `.xinitrc`)
@@ -68,6 +69,7 @@ DISPLAY=:0 xrantui
 |---|---|
 | `Tab` | Select next monitor |
 | `← ↑ → ↓` | Move selected monitor (40 px/step, snaps to edges) |
+| `+` / `-` | Cycle selected monitor's resolution (larger / smaller) |
 | `p` | Set selected monitor as primary |
 | `u` | Undo — revert all monitors to positions at startup |
 | `Enter` | Apply layout with xrandr |

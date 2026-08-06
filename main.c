@@ -92,6 +92,27 @@ int main(void) {
             msg = "Primärskärm satt — tryck Enter för att applicera";
             break;
 
+        case '+':
+        case '=':
+            if (mons[selected].nmodes > 0) {
+                monitors_cycle_mode(&mons[selected], -1); /* -1 = större (lista är störst->minst) */
+                snap(mons, nmons, selected);
+                msg = "Upplösning ändrad — tryck Enter för att applicera";
+            } else {
+                msg = "Inga kända upplösningar för denna skärm";
+            }
+            break;
+        case '-':
+        case '_':
+            if (mons[selected].nmodes > 0) {
+                monitors_cycle_mode(&mons[selected], 1); /* +1 = mindre */
+                snap(mons, nmons, selected);
+                msg = "Upplösning ändrad — tryck Enter för att applicera";
+            } else {
+                msg = "Inga kända upplösningar för denna skärm";
+            }
+            break;
+
         case 'u':
         case 'U':
             memcpy(mons, orig, sizeof(Monitor) * (size_t)nmons);
